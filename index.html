@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>El día de Leo</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700&display=swap">
+<style>
+:root{--red:#E84924;--yellow:#F9B000;--blue:#0DB1CA;--green:#8AC75A;--bg:#FFF6E3;--card:#fff;--ink:#2a2622;--line:#ecdcb8;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1f1d1b;--card:#2c2926;--ink:#f6efe2;--line:#4a443d}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:"Josefin Sans",system-ui,sans-serif;min-height:100%}
+main{max-width:720px;margin:0 auto;padding:16px}
+header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px}
+h1{margin:0;font-size:1.7rem;color:var(--red)}
+.badge{background:var(--blue);color:#fff;font-weight:700;padding:6px 14px;border-radius:99px;font-size:1rem}
+.frame{border:5px solid var(--yellow);border-radius:22px;overflow:hidden;background:var(--card)}
+.frame svg{display:block;width:100%;height:auto}
+#text{font-size:clamp(1.25rem,4.2vw,1.65rem);line-height:1.5;font-weight:600;margin:16px 4px;min-height:6.5em}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#dots{display:flex;gap:8px}
+#dots i{width:14px;height:14px;border-radius:50%;background:var(--line)}
+#dots i.on{background:var(--red);transform:scale(1.25)}
+button{font:700 1.2rem "Josefin Sans",system-ui,sans-serif;min-height:56px;padding:0 22px;border:0;border-radius:18px;color:#fff;background:var(--blue);cursor:pointer;box-shadow:0 5px 0 rgba(0,0,0,.2);transition:transform .1s}
+button:active{transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.2)}
+button.go{background:var(--green);color:#1d2b10}
+button.hot{background:var(--red)}
+button:disabled{opacity:.4;box-shadow:none}
+button:focus-visible{outline:4px solid var(--yellow);outline-offset:2px}
+[hidden]{display:none!important}
+.help{font-size:1.15rem;font-weight:600;margin:4px 4px 14px}
+.slot{display:flex;align-items:center;gap:10px;min-height:64px;margin-bottom:10px;padding:6px 10px 6px 6px;border:3px dashed var(--line);border-radius:18px;background:var(--card);font-weight:600;font-size:1.1rem}
+.slot b{flex:none;width:44px;height:44px;border-radius:50%;background:var(--yellow);color:#2a2622;display:grid;place-items:center;font-size:1.3rem}
+.slot.full{border-style:solid;border-color:var(--blue);cursor:pointer}
+.slot.ok{border-color:var(--green);background:color-mix(in srgb,var(--green) 25%,var(--card))}
+.slot.bad{border-color:var(--red);background:color-mix(in srgb,var(--red) 18%,var(--card));animation:sh .4s}
+@keyframes sh{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+#pool{display:flex;flex-direction:column;gap:10px;margin:18px 0}
+.piece{text-align:left;background:var(--blue);color:#fff;min-height:60px;padding:10px 16px;font-size:1.1rem;font-weight:700}
+.row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+#result{text-align:center;font-size:1.5rem;font-weight:700;margin:14px 0}
+.stars{font-size:2.6rem;color:var(--yellow);letter-spacing:6px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+<header><h1>El día de Leo</h1><span class="badge" id="badge">Cuento</span></header>
+
+<section id="story">
+  <div class="frame" id="art" role="img"></div>
+  <p id="text" aria-live="polite"></p>
+  <div class="nav">
+    <button id="prev">◀ Atrás</button>
+    <div id="dots" aria-hidden="true"></div>
+    <button id="next" class="go">Siguiente ▶</button>
+  </div>
+</section>
+
+<section id="game" hidden>
+  <p class="help">¡Se ha mezclado el cuento! Toca las frases en el orden en que ocurrieron.</p>
+  <div id="slots"></div>
+  <div id="pool"></div>
+  <div id="result"></div>
+  <div class="row">
+    <button id="check" class="go" disabled>¡Comprobar!</button>
+    <button id="reread">📖 Leer otra vez</button>
+  </div>
+</section>
+</main>
+
+<script>
+const C={r:"#E84924",y:"#F9B000",b:"#0DB1CA",g:"#8AC75A",gd:"#6FB04A",skin:"#F4B98F",dirt:"#E9C58B"};
+const kid=(x,y,s,rot=0,basket=false)=>`<g transform="translate(${x} ${y}) scale(${s}) rotate(${rot})">
+<rect x="-10" y="-30" width="8" height="30" rx="4" fill="#2D3A5C"/><rect x="3" y="-30" width="8" height="30" rx="4" fill="#2D3A5C"/>
+<ellipse cx="-6" cy="0" rx="8" ry="3.5" fill="#6b3b24"/><ellipse cx="9" cy="0" rx="8" ry="3.5" fill="#6b3b24"/>
+<rect x="-13" y="-60" width="26" height="32" rx="9" fill="${C.y}"/>
+<circle cx="-15" cy="-38" r="5" fill="${C.skin}"/><circle cx="15" cy="-42" r="5" fill="${C.skin}"/>
+${basket?`<path d="M2 -46h24l-4 16h-16z" fill="#A8683A"/><circle cx="8" cy="-49" r="5" fill="${C.g}"/><circle cx="18" cy="-50" r="5" fill="${C.gd}"/><path d="M14 -50l3-10 3 10z" fill="#F07C1E"/>`:""}
+<circle cx="0" cy="-72" r="13" fill="${C.skin}"/><circle cx="-4" cy="-72" r="1.8" fill="#2a2622"/><circle cx="5" cy="-72" r="1.8" fill="#2a2622"/>
+<path d="M-3 -66q3 3 6 0" stroke="#a5482e" stroke-width="1.5" fill="none"/>
+<path d="M-16 -76Q0 -100 16 -76Z" fill="${C.r}"/><rect x="-19" y="-77" width="40" height="5" rx="2.5" fill="#C23A19"/></g>`;
+const duck=(x,y,s)=>`<g transform="translate(${x} ${y}) scale(${s})"><ellipse cx="0" cy="-11" rx="17" ry="11" fill="${C.y}"/><path d="M-16 -14q-8 -4 -6 -10q8 2 10 6z" fill="#E09A00"/><circle cx="12" cy="-26" r="9" fill="${C.y}"/><path d="M19 -26l9 2 -9 4z" fill="${C.r}"/><circle cx="14" cy="-28" r="1.6" fill="#2a2622"/><rect x="-6" y="-3" width="3" height="6" fill="${C.r}"/><rect x="4" y="-3" width="3" height="6" fill="${C.r}"/></g>`;
+const dog=(x,y,s)=>`<g transform="translate(${x} ${y}) scale(${s})"><path d="M-22 -22q-10 -10 -6 -16" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round"/><ellipse cx="0" cy="-20" rx="23" ry="12" fill="#fff" stroke="#DCD3C0"/><rect x="-16" y="-12" width="6" height="12" rx="3" fill="#fff" stroke="#DCD3C0"/><rect x="11" y="-12" width="6" height="12" rx="3" fill="#fff" stroke="#DCD3C0"/><circle cx="22" cy="-32" r="11" fill="#fff" stroke="#DCD3C0"/><ellipse cx="16" cy="-40" rx="4" ry="8" fill="#B58A5E" transform="rotate(-20 16 -40)"/><circle cx="25" cy="-34" r="1.8" fill="#2a2622"/><ellipse cx="32" cy="-29" rx="3.5" ry="2.5" fill="#2a2622"/></g>`;
+const hills=(c1=C.g,c2=C.gd)=>`<path d="M0 150Q80 90 170 140T330 120T400 140V200H0Z" fill="${c2}"/><path d="M0 170Q120 120 240 165T400 160V260H0Z" fill="${c1}"/>`;
+const tree=(x,y)=>`<rect x="${x-4}" y="${y-40}" width="8" height="42" fill="#7a4a2a"/><circle cx="${x}" cy="${y-55}" r="26" fill="${C.gd}"/><circle cx="${x+14}" cy="${y-45}" r="18" fill="${C.g}"/>`;
+const house=(x,y,lit)=>`<rect x="${x}" y="${y}" width="110" height="80" fill="#FFF1D6"/><path d="M${x-10} ${y}L${x+55} ${y-45} ${x+120} ${y}Z" fill="${C.r}"/><rect x="${x+44}" y="${y+28}" width="24" height="52" rx="4" fill="${C.b}"/><rect x="${x+8}" y="${y+20}" width="24" height="24" rx="3" fill="${lit?C.y:"#BFE9F0"}"/><rect x="${x+80}" y="${y+20}" width="22" height="24" rx="3" fill="${lit?C.y:"#BFE9F0"}"/>`;
+const sun=(x,y,c=C.y,r=26)=>`<circle cx="${x}" cy="${y}" r="${r+10}" fill="${c}" opacity=".25"/><circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/>`;
+const cloud=(x,y,c="#fff")=>`<g fill="${c}"><ellipse cx="${x}" cy="${y}" rx="40" ry="16"/><ellipse cx="${x-20}" cy="${y-10}" rx="22" ry="16"/><ellipse cx="${x+12}" cy="${y-14}" rx="26" ry="18"/></g>`;
+const path=`<path d="M0 235Q150 205 400 225V260H0Z" fill="${C.dirt}"/>`;
+const rows=()=>[0,1,2].map(i=>{let y=190+i*24,o="";for(let x=20+i*14;x<400;x+=44)o+=`<ellipse cx="${x}" cy="${y}" rx="17" ry="11" fill="${i%2?C.g:C.gd}"/><path d="M${x-3} ${y-2}l3 -12 3 12z" fill="#F07C1E"/>`;return o}).join("");
+
+const SCENES=[
+{t:"Leo se puso su gorro rojo y salió de casa. Sus amigos, el patito Pipo y la perrita Nube, ya lo esperaban en la puerta.",
+ s:(`<rect width="400" height="260" fill="#CDEFF5"/>${sun(340,48)}${cloud(90,50)}${hills()}${house(30,120,false)}${path}${duck(185,236,1.2)}${kid(250,240,1.5)}${dog(340,246,1.1)}`)},
+{t:"Los tres echaron a correr por el camino de tierra. ¡Hoy iban a la huerta de la abuela!",
+ s:(`<rect width="400" height="260" fill="#CDEFF5"/>${sun(60,48)}${cloud(250,60)}${hills()}${tree(330,175)}${path}${duck(80,246,1.2)}${dog(170,244,1.2)}${kid(280,240,1.6,10)}`)},
+{t:"En la huerta, Leo recogió zanahorias y lechugas. Pipo picoteaba hojitas y Nube olisqueaba la tierra.",
+ s:(`<rect width="400" height="260" fill="#CDEFF5"/>${sun(340,45)}${hills()}<rect y="170" width="400" height="90" fill="#9a6a3c"/>${rows()}${duck(90,250,1.1)}${dog(170,255,1.0)}${kid(270,255,1.5,0,true)}`)},
+{t:"De pronto, unas nubes grises taparon el sol y empezó a llover. Los amigos corrieron a esconderse bajo una enorme hoja de calabaza.",
+ s:(`<rect width="400" height="260" fill="#9DB4BC"/>${cloud(110,40,"#6F858E")}${cloud(300,50,"#7C929B")}${[40,90,140,200,260,320,370].map((x,i)=>`<path d="M${x} ${70+i%3*20}l-6 18" stroke="${C.b}" stroke-width="3" stroke-linecap="round"/>`).join("")}<path d="M0 190Q150 160 400 185V260H0Z" fill="${C.gd}"/><rect x="196" y="110" width="8" height="120" fill="#4f8a30"/><ellipse cx="200" cy="112" rx="135" ry="40" fill="${C.g}"/><path d="M80 112Q200 100 320 112" stroke="${C.gd}" stroke-width="3" fill="none"/>${duck(110,240,1.1)}${kid(205,244,1.3)}${dog(300,244,1.0)}`)},
+{t:"Cuando salió el sol otra vez, volvieron a casa con la cesta llena. Esa noche cenaron una sopa calentita con la abuela.",
+ s:(`<rect width="400" height="260" fill="#FFD9A0"/>${sun(60,150,C.r,34)}${hills("#7DB84F","#5E9A3E")}${house(240,120,true)}${path}${duck(70,246,1.1)}${dog(140,248,1.1)}${kid(205,244,1.4,0,true)}`)}
+];
+const ORDER=["Leo se puso el gorro rojo y salió de casa.","Leo, Pipo y Nube corrieron hacia la huerta.","Recogieron zanahorias y lechugas.","Empezó a llover y se taparon con una hoja.","Volvieron a casa y cenaron sopa."];
+
+const $=id=>document.getElementById(id);
+let i=0;
+function showScene(){
+  $("art").innerHTML=`<svg viewBox="0 0 400 260" aria-hidden="true">${SCENES[i].s}</svg>`;
+  $("art").setAttribute("aria-label","Ilustración "+(i+1)+" de "+SCENES.length);
+  $("text").textContent=SCENES[i].t;
+  $("dots").innerHTML=SCENES.map((_,k)=>`<i class="${k===i?"on":""}"></i>`).join("");
+  $("prev").disabled=i===0;
+  $("next").textContent=i===SCENES.length-1?"¡A jugar! ★":"Siguiente ▶";
+}
+$("prev").onclick=()=>{if(i>0){i--;showScene()}};
+$("next").onclick=()=>{if(i<SCENES.length-1){i++;showScene()}else startGame()};
+$("reread").onclick=()=>{i=0;$("game").hidden=true;$("story").hidden=false;$("badge").textContent="Cuento";showScene()};
+
+let slots,pool,locked,tries;
+function shuffle(a){do{for(let k=a.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[a[k],a[j]]=[a[j],a[k]]}}while(a.every((v,k)=>v===k));return a}
+function startGame(){
+  $("story").hidden=true;$("game").hidden=false;$("badge").textContent="Ordena";
+  slots=ORDER.map(()=>null);locked=new Set();tries=0;
+  pool=shuffle(ORDER.map((_,k)=>k));
+  $("result").innerHTML="";render();
+}
+function render(){
+  $("slots").innerHTML=slots.map((v,k)=>`<div class="slot ${v!==null?"full":""} ${locked.has(k)?"ok":""}" data-k="${k}"><b>${k+1}</b><span>${v!==null?ORDER[v]:""}</span></div>`).join("");
+  $("pool").innerHTML=pool.map(v=>`<button class="piece" data-v="${v}">${ORDER[v]}</button>`).join("");
+  $("check").disabled=slots.includes(null);
+  document.querySelectorAll(".piece").forEach(b=>b.onclick=()=>{const k=slots.indexOf(null);if(k<0)return;slots[k]=+b.dataset.v;pool=pool.filter(v=>v!==+b.dataset.v);render()});
+  document.querySelectorAll(".slot.full:not(.ok)").forEach(s=>s.onclick=()=>{const k=+s.dataset.k;pool.push(slots[k]);slots[k]=null;render()});
+}
+$("check").onclick=()=>{
+  tries++;let good=0;
+  const els=document.querySelectorAll(".slot");
+  slots.forEach((v,k)=>{if(v===k){locked.add(k);good++;els[k].classList.add("ok")}else els[k].classList.add("bad")});
+  if(good===ORDER.length){
+    const n=tries===1?3:tries===2?2:1;
+    $("result").innerHTML=`<div class="stars">${"★".repeat(n)}${"☆".repeat(3-n)}</div>¡Muy bien! Has ordenado todo el cuento.`;
+    $("check").disabled=true;return;
+  }
+  $("result").textContent=`Vas bien: ${good} de ${ORDER.length} en su sitio. ¡Prueba otra vez!`;
+  $("check").disabled=true;
+  setTimeout(()=>{slots.forEach((v,k)=>{if(!locked.has(k)){pool.push(v);slots[k]=null}});render()},1400);
+};
+showScene();
+</script>
+</body>
+</html>
